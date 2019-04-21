@@ -1,4 +1,4 @@
-#include "../lib/chat.h"
+#include "../lib/client/chatc.h"
 
 int main(int argc,char* argv[]){
 
@@ -9,9 +9,7 @@ int main(int argc,char* argv[]){
 
 	initClient(&dSock, &adServ);
 	connectClient(dSock, adServ);
-	while(1){
-		clientLoop(dSock);
-	}
+	clientLoop(dSock);
 
 	return 0;
 }
