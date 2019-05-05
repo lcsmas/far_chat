@@ -18,28 +18,33 @@ void sendIntMsg(int* socket_fd, int* send_buffer){
 }
 
 // Send a string message to the to destination and print it
-int sendStrMsg(int* socket_fd, char * send_buffer){
+int sendStrMsg(int* socket_fd, char * send_buffer,int flag){
     int send_size = send(*socket_fd, send_buffer, strlen(send_buffer)+1, 0);
     if( send_size == -1 ){
         perror("send() failed");
     } else
     {
-        printf("Message sent : %s\n", send_buffer);
+        if (flag == 0)        {
+            printf("\nMessage sent : %s\n", send_buffer);
+        }
     }
     
     return send_size;
 }
 
 // Receive a string message from the client and print it
-int receiveStrMsg(int* csocket_fd, char * recv_buffer, int buffer_len){
+int receiveStrMsg(int* csocket_fd, char * recv_buffer, int buffer_len,int flag){
     int recv_size = recv(*csocket_fd, recv_buffer, buffer_len, 0);
     if(recv_size == -1){
         perror("recv() failed");
     } else {
-        printf("Message received : %s\n", recv_buffer);
+        if (flag == 0){
+            printf("\nMessage received : %s", recv_buffer);
+        }
     }
     return recv_size;
 }
+
 
 // Log a server message in the console
 void logServerMessage(char * msg){

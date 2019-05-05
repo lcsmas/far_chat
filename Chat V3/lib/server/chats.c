@@ -13,7 +13,7 @@
 #endif
 
 #if !defined SIZEBUFF
-#define SIZEBUFF 512
+#define SIZEBUFF 1023
 #endif
 
 void initClientPool(struct client_pool* cpool) {
@@ -99,7 +99,7 @@ void serverLoop(int * sockfd, struct client_pool* cpool){
 
 //Disconnect client number cnum from the server (clear it from the client pool and set his sockfd to -1)
 void disconnectClient(struct client_pool* cpool, const int cnum){
-    sendStrMsg(&(cpool->csockfd[cnum]), "-1"); // Notify the client that the communication is terminated
+    sendStrMsg(&(cpool->csockfd[cnum]), "-1",0); // Notify the client that the communication is terminated
     close(cpool->csockfd[cnum]); // Close the socket
     printf("Client %d has been disconnected\n", cnum);
     cpool->csockfd[cnum] = -1; 
@@ -156,16 +156,29 @@ void clientThread(struct threadArgs * args){
     char * recv_buffer = cpool->recv_buffer[slot];
 
     while(1){
-        receiveStrMsg(&csockfd, recv_buffer, sizeof(recv_buffer));
+        receiveStrMsg(&csockfd, recv_buffer, sizeof(recv_buffer),0);
+        if( strcmp("file\n", recv_buffer) == 0 ){
+            printf("Reception fichier\n");
+            while(strcmp("-2\n", recv_buffer) != 0 ){
+                for(int i = 0; i < cpool->pool_size; i++){
+                    if(cpool->csockfd[i] != -1 && csockfd != cpool->csockfd[i]){
+                        strcpy(cpool->send_buffer[i], recv_buffer);
+                        sendStrMsg(&(cpool->csockfd[i]), cpool->send_buffer[i],1);
+                    }
+                }
+                receiveStrMsg(&csockfd, recv_buffer, SIZEBUFF,1);
+            }
+            printf("Fichier transferer\n");
+        }
         printf("From client %d\n",cpool->cnum[slot]);
         for(int i = 0; i < cpool->pool_size; i++){
             if(cpool->csockfd[i] != -1 && csockfd != cpool->csockfd[i]){
                 strcpy(cpool->send_buffer[i], recv_buffer);
-                sendStrMsg(&(cpool->csockfd[i]), cpool->send_buffer[i]);
+                sendStrMsg(&(cpool->csockfd[i]), cpool->send_buffer[i],0);
                 printf("To client %d \n", cpool->cnum[i]);
             }
         }
-        if( strcmp("-1", recv_buffer) == 0 ){
+        if( strcmp("-1\n", recv_buffer) == 0 ){
             printf("tub\n");
             disconnectClient(cpool, cpool->cnum[slot]);
             pthread_exit(NULL);
