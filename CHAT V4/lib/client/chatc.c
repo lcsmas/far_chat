@@ -69,7 +69,16 @@ void *readingLoop(int * sockfd){
         if(strcmp(recv_buffer, "-1\n") == 0){
             printf("%s\n", "Distant client terminated the communication");
         }
-        
+        if(strcmp(recv_buffer, "sucessChannel\n") == 0){
+            printf("%s\n", "Channel connexion successful");
+        }
+        if(strcmp(recv_buffer, "errorChannel\n") == 0){
+            printf("%s\n", "Channel connexion failed");
+        }
+        if(strcmp(recv_buffer, "exitChannel\n") == 0){
+            printf("%s\n", "Channel exit, you can now join a new channel");
+            printf("%s\n","To see channel: 'getChannel' \n To Join channel : 'connectChannel A' (A: channel id)\n To exit channel: 'exitChannel");
+        }
     }
 }
 
@@ -77,6 +86,7 @@ void *readingLoop(int * sockfd){
 //The client writing loop
 void *writingLoop(int * sockfd){
     char send_buffer[SIZEBUFF];
+    printf("%s\n","To see channel: 'getChannel' \n To Join channel : 'connectChannel A' (A: channel id)\n To exit channel: 'exitChannel");
     while(1){
         printf("Moi: ");
         fgets(send_buffer,sizeof(send_buffer),stdin); // Récupère le message à envoyer
