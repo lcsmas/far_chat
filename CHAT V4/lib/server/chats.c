@@ -154,7 +154,8 @@ void disconnectClient(struct client_pool* cpool, const int cnum){
 int acceptClient(int* sock_fd, struct sockaddr_in* csin){
     char * cipaddr;
     socklen_t csin_len = sizeof(*csin);
-    int csocket_fd = accept(*sock_fd, (struct sockadrr * restrict)csin, &csin_len);
+
+    int csocket_fd = accept(*sock_fd, (struct sockaddr*) csin, &csin_len);
     if (csocket_fd == -1){
         perror("accept() failed");
     } else {
