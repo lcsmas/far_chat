@@ -3,16 +3,15 @@
 #define NB_CHAN 5
 
 int main(int argc, char* argv[]){
-    int sockfd; //server socket file descriptor
-    struct sockaddr_in sin; //server address info;
     struct server server_info;
-    //struct client_pool cpool; //client pool cointaining all the client connected to the server;
+    int * sockfd = &(server_info.sockfd);
+    struct sockaddr_in sin = server_info.sin;
     
     initServer(&server_info);
-    createServer(&sockfd, &sin, SOCK_STREAM);
-    serverListen(&sockfd, cpool.pool_size);
-    serverLoop(&sockfd, &cpool);
-    destroyClientPool(&cpool);
+    createServer(sockfd, &sin, SOCK_STREAM);
+    serverListen(&server_info);
+    serverLoop(sockfd, &server_info);
+    destroyClientPool(server_info.cpool);
     return 0;
 }
 

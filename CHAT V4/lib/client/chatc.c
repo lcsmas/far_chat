@@ -77,8 +77,9 @@ void *readingLoop(int * sockfd){
         }
         if(strcmp(recv_buffer, "exitChannel\n") == 0){
             printf("%s\n", "Channel exit, you can now join a new channel");
-            printf("%s\n","To see channel: 'getChannel' \n To Join channel : 'connectChannel A' (A: channel id)\n To exit channel: 'exitChannel");
+            printf("%s\n", "To see channel: 'getChannel' \n To Join channel : 'connectChannel A' (A: channel id)\n To exit channel: 'exitChannel");
         }
+        sleep(1);
     }
 }
 
@@ -88,7 +89,7 @@ void *writingLoop(int * sockfd){
     char send_buffer[SIZEBUFF];
     printf("%s\n","To see channel: 'getChannel' \n To Join channel : 'connectChannel A' (A: channel id)\n To exit channel: 'exitChannel");
     while(1){
-        printf("Moi: ");
+        printf("Moi: \n");
         fgets(send_buffer,sizeof(send_buffer),stdin); // Récupère le message à envoyer
         sendStrMsg(sockfd,send_buffer); // Envoie ce message au serveur
         if(strcmp(send_buffer, "-1\n") == 0){
@@ -97,4 +98,5 @@ void *writingLoop(int * sockfd){
         }
         
     }
+    sleep(1);
 }

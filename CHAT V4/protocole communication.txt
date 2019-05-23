@@ -1,0 +1,6 @@
+getChannel : demande la liste de tout les channel
+connectChannel $1: se connecte au channel $1 ($1 est l'id du channel)
+successChannel : le client a été connecté au channel
+errorChannel : la connexion du client au channel a été refusé
+exitChannel : le client se déconnecte du channel
+
