@@ -25,51 +25,53 @@
 #endif
 
 void initServer(struct server* server_info){
-    struct channel* channels;
-
-    server_info = malloc(sizeof server_info);
-    //server_info->channels = malloc(sizeof(server_info->channels) * NB_CHAN);
-    server_info->cpool = malloc(sizeof(server_info->cpool) * CHAT_SIZE);
-    initChannel(server_info);   
+    initChannel(server_info);  
     initClientPool(server_info);
-    
 }
 
 void initChannel(struct server* server_info){
     struct channel* channels = malloc(sizeof(struct channel) * NB_CHAN);
     server_info->channels = channels;
+
     for(int i =0; i < NB_CHAN; i++){
-        channels[i].channel_id = i;
+        channels[i].channel_id = malloc(sizeof(int*));
+        *(channels[i].channel_id) = i;
         channels[i].clients_id = malloc(sizeof(channels[i].clients_id) * CHANNEL_SIZE);
         channels[i].name = malloc(sizeof(char) * SIZEBUFF);
         channels[i].descr = malloc(sizeof(char) * SIZEBUFF);
  
         //  Give a name to the channel
-        sprintf(channels[i].name, "Name of channel %d\n", i); 
+        sprintf(channels[i].name, "Name of channel %d", i); 
 
         //  Give a description to the channel
-        sprintf(channels[i].descr, "Description of channel %d\n", i); 
-        
-        channels[i].size = CHANNEL_SIZE;
+        sprintf(channels[i].descr, "Description of channel %d", i); 
+        channels[i].size = malloc(sizeof(int*));
+        *(channels[i].size) = CHANNEL_SIZE;
     }
 }
 
 void initClientPool(struct server* server_info) {
-    struct client_pool* cpool = server_info->cpool;
-    cpool->ccnum = 0;
-    cpool->pool_size = CHAT_SIZE;
+    struct client_pool* cpool = malloc(sizeof(struct client_pool) * CHANNEL_SIZE);
+    server_info->cpool = cpool;
+    cpool->ccnum = malloc(sizeof(int*));
+    cpool->pool_size = malloc(sizeof(int*));
+    *(cpool->ccnum) = 0;
+    *(cpool->pool_size) = CHAT_SIZE;
     cpool->csockfd = malloc(sizeof(int*) * CHAT_SIZE);
     cpool->csin = malloc(sizeof(struct sockaddr_in*) * CHAT_SIZE);
     cpool->cnum = malloc(sizeof(int*) * CHAT_SIZE);
     cpool->recv_buffer = malloc(sizeof(char *) * CHAT_SIZE);
     cpool->send_buffer = malloc(sizeof(char *) * CHAT_SIZE);
+    cpool->channel = malloc(sizeof(struct channel*) * CHAT_SIZE);
     cpool->cthread = malloc(sizeof(pthread_t *) * CHAT_SIZE);
     
-    for(int i = 0; i < cpool->pool_size; i++){
+    for(int i = 0; i < *(cpool->pool_size); i++){
         cpool->recv_buffer[i] = malloc(sizeof(char) * SIZEBUFF);
         cpool->send_buffer[i] = malloc(sizeof(char) * SIZEBUFF);
+        cpool->channel[i] = NULL;
         cpool->csockfd[i] = -1;
     }
+    
 }
 
 //Free malloc of client pool
@@ -118,16 +120,20 @@ void serverListen(struct server* sinfo){
 //The server loop
 void serverLoop(int * sockfd, struct server* sinfo){
     pthread_t connectionHandlingThread;
-    struct threadArgs t_args;
+    struct threadArgs * t_args = malloc(sizeof(struct threadArgs));
+
     struct client_pool* cpool = sinfo->cpool;
 
-    t_args.sockfd = sockfd;
-    t_args.cpool = cpool;
-    t_args.sinfo = sinfo;
+    t_args->sockfd = malloc(sizeof(int));
+    t_args->sockfd = sockfd;
+    t_args->cpool = malloc(sizeof(struct client_pool));
+    t_args->cpool = cpool;
+    t_args->sinfo = malloc(sizeof(struct server));
+    t_args->sinfo = sinfo;
 
     // Create a thread that handle the connection of new client.
     // This thread will produce a new thread for every client when a connection is made with him
-    if( pthread_create(&connectionHandlingThread, NULL, (void *)&clientAcceptationLoopThread, &t_args) == -1 ){
+    if( pthread_create(&connectionHandlingThread, NULL, (void *)&clientAcceptationLoopThread, t_args) == -1 ){
         perror("pthread_create()");
         exit(EXIT_FAILURE);
     }
@@ -165,20 +171,20 @@ int acceptClient(int* sock_fd, struct sockaddr_in* csin){
     
     return csocket_fd;
 }
-
 // Accept a client and create a thread to transfer the messages of this client to the other clients
 void clientAcceptationLoopThread(struct threadArgs * args){
     int * sockfd = (int *)(args->sockfd);
     struct client_pool* cpool = (struct client_pool*)(args->cpool);
     while(1){
         if(!isFull(*cpool)){
-            int emptySlot = getEmptySlot(*cpool);
+            int emptySlot = getEmptySlot(cpool);
             cpool->csockfd[emptySlot] = acceptClient(sockfd, &(cpool->csin[emptySlot]) );
             cpool->ccnum++;
             cpool->cnum[emptySlot] = emptySlot;
-            args->emptySlot = emptySlot;
+            args->emptySlot = malloc(sizeof(int));
+            *(args->emptySlot) = emptySlot;
 
-            if( pthread_create(&(cpool->cthread[emptySlot]), NULL, (void *) clientThread, args) == -1 ) {
+            if( pthread_create(&(cpool->cthread[emptySlot]), NULL, (void *) &clientThread, args) == -1 ) {
                 perror("pthread_create()");
                 exit(EXIT_FAILURE);
             }
@@ -207,59 +213,88 @@ void clientThread(struct threadArgs * args){
     struct client_pool* cpool = (struct client_pool*)(args->cpool);
 
     //  Slot attributed to the client
-    int slot = (int)(args->emptySlot);  
+    int* slot = (int*)(args->emptySlot);  
 
-    //  Channel id the client is connected to
-    int cchan_id = cpool->channel[slot].channel_id; 
+    //  Channel the client is connected to
+    struct channel* cchan = cpool->channel[*slot];
 
     //  Socket file descriptor of the client
-    int csockfd = cpool->csockfd[slot]; 
+    int csockfd = cpool->csockfd[*slot]; 
 
     //  Reception buffer of the client
-    char * recv_buffer = cpool->recv_buffer[slot]; 
+    char * recv_buffer = cpool->recv_buffer[*slot]; 
 
     //  Send buffer of the client
-    char * send_buffer = cpool->send_buffer[slot];
+    char * send_buffer = cpool->send_buffer[*slot];
 
     while(1){
-        receiveStrMsg(&csockfd, recv_buffer, sizeof(recv_buffer));
-        printf("From client %d\n",cpool->cnum[slot]);
+        strcpy(send_buffer, "");
+        strcpy(recv_buffer, "");
+        receiveStrMsg(&csockfd, recv_buffer, sizeof(char *) * SIZEBUFF);
+        printf("From client %d\n",cpool->cnum[*slot]);
 
         //  Disconnect the client from the server if he send -1
         //  then exit the thread;
         if( strcmp("-1", recv_buffer) == 0 ){
-            printf("tub\n");
-            disconnectClient(cpool, cpool->cnum[slot]);
+            disconnectClient(cpool, cpool->cnum[*slot]);
             pthread_exit(NULL);
         }
 
-        if( strcmp( "getChannel", recv_buffer) ){
-            send_buffer = "/0";
+        else if( strcmp("getChannel\n", recv_buffer) == 0 ){
             for(int i = 0; i < NB_CHAN; i++){
                 struct channel chan = sinfo->channels[i];
-                char * buffer;
-                sprintf(buffer,"ID : %d, Name : %s, Description : %s \n", chan.channel_id, chan.name, chan.descr);
-                strcat(send_buffer, buffer);
+                sprintf(send_buffer,"ID : %d, Name : %s, Description : %s \n", *(chan.channel_id), chan.name, chan.descr);
+                sendStrMsg(&csockfd, send_buffer);
             }
+        }
+
+        else if( strstr(recv_buffer, "connectChannel") != NULL ){
+            strtok(recv_buffer, " ");
+            int chanid = atoi(strtok(NULL, " "));
+
+            //  We give a channel to the client
+            cpool->channel[*slot] = &(sinfo->channels[chanid]);
+            cchan = cpool->channel[*slot];
+            printf("Connected client %d to channel %d \n",  cpool->cnum[*slot], chanid);
+            sprintf(send_buffer, "successChannel");
             sendStrMsg(&csockfd, send_buffer);
         }
+        
+        else if( strcmp(recv_buffer, "exitChannel\n") == 0 ){
+            printf("Client %d has been disconnected from channel %d\n", cpool->cnum[*slot], cchan->channel_id);
+            cpool->channel[*slot] = NULL;
+            cchan = cpool->channel[*slot];
+        }
 
-        for(int i = 0; i < cpool->pool_size; i++){
-            //  Socket fd of the client we are trying to reach
-            int ocsockfd = cpool->csockfd[i]; 
+        //  If the client is connected to a channel
+        else if( cchan != NULL){
+            int * cchan_id = cchan->channel_id;
 
-            //  Channel id of the client we are trying to reach
-            int occhanid = cpool->channel[i].channel_id;
+            //  Then send the message to all other client connected to the same channel
+            for(int i = 0; i < *(cpool->pool_size); i++){
+                
+                //  Channel id of the client we are try
+                struct channel* occhan = cpool->channel[i];
 
-            //  Send buffer of the client we are trying to reach
-            char * ocsend_buffer = cpool->send_buffer[i];
+                if( occhan != NULL ){
+                    //  Socket fd of the client we are trying to reach
+                    int ocsockfd = cpool->csockfd[i]; 
 
-            if(socketIsUsed(ocsockfd) && socketAreDifferent(csockfd, ocsockfd) && cchan_id == occhanid ){
-                strcpy(ocsend_buffer, recv_buffer);
-                sendStrMsg(&ocsockfd, ocsend_buffer);
-                printf("To client %d \n", cpool->cnum[i]);
+                    //  Channel ID of the client we are trying to reach
+                    int * occhanid = occhan->channel_id;
+
+                    //  Send buffer of the client we are trying to reach
+                    char * ocsend_buffer = cpool->send_buffer[i];
+
+                    if(socketIsUsed(ocsockfd) && socketAreDifferent(csockfd, ocsockfd) && *cchan_id == *occhanid ){
+                        strcpy(ocsend_buffer, recv_buffer);
+                        sendStrMsg(&ocsockfd, ocsend_buffer);
+                        printf("To client %d \n", cpool->cnum[i]);
+                    }
+                }
             }
         }
+        
         
 
 
@@ -267,10 +302,10 @@ void clientThread(struct threadArgs * args){
 }
 
 // Return the id of the first empty slot found in the client pool
-int getEmptySlot(struct client_pool cpool){
+int getEmptySlot(struct client_pool* cpool){
     int emptySlot = -1;
-    for(int i = 0; i < cpool.pool_size; i++){
-        if(cpool.csockfd[i] == -1){
+    for(int i = 0; i < *(cpool->pool_size); i++){
+        if(cpool->csockfd[i] == -1){
             emptySlot = i;
             break;
         }

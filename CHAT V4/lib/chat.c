@@ -8,18 +8,22 @@
 #define SERVER_ADDR "127.0.0.1"
 #endif
 
+#if !defined SIZEBUFF
+#define SIZEBUFF 512
+#endif
+
 
 
 // Send an int message to the destination
 void sendIntMsg(int* socket_fd, int* send_buffer){
-    if( send(*socket_fd, send_buffer, sizeof(*send_buffer), 0) == -1 ){
+    if( send(*socket_fd, send_buffer, sizeof(int) * SIZEBUFF, 0) == -1 ){
         perror("send() failed");
     }
 }
 
 // Send a string message to the to destination and print it
 int sendStrMsg(int* socket_fd, char * send_buffer){
-    int send_size = send(*socket_fd, send_buffer, strlen(send_buffer)+1, 0);
+    int send_size = send(*socket_fd, send_buffer, sizeof(char) * SIZEBUFF, 0);
     if( send_size == -1 ){
         perror("send() failed");
     } else

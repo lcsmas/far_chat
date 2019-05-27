@@ -65,7 +65,10 @@ void clientLoop(int sockfd){
 void *readingLoop(int * sockfd){
     while(1){
         char recv_buffer[SIZEBUFF];
-        receiveStrMsg(sockfd, recv_buffer, sizeof(recv_buffer)); // Reçoit le message du serveur et l'affiche
+
+        // Reçoit le message du serveur et l'affiche
+        receiveStrMsg(sockfd, recv_buffer, sizeof(char) * SIZEBUFF);
+         
         if(strcmp(recv_buffer, "-1\n") == 0){
             printf("%s\n", "Distant client terminated the communication");
         }
@@ -79,24 +82,25 @@ void *readingLoop(int * sockfd){
             printf("%s\n", "Channel exit, you can now join a new channel");
             printf("%s\n", "To see channel: 'getChannel' \n To Join channel : 'connectChannel A' (A: channel id)\n To exit channel: 'exitChannel");
         }
-        sleep(1);
     }
 }
 
 
 //The client writing loop
 void *writingLoop(int * sockfd){
+    setbuf(stdin, NULL);
     char send_buffer[SIZEBUFF];
     printf("%s\n","To see channel: 'getChannel' \n To Join channel : 'connectChannel A' (A: channel id)\n To exit channel: 'exitChannel");
     while(1){
         printf("Moi: \n");
-        fgets(send_buffer,sizeof(send_buffer),stdin); // Récupère le message à envoyer
-        sendStrMsg(sockfd,send_buffer); // Envoie ce message au serveur
+        fgets(send_buffer, sizeof(char) * SIZEBUFF, stdin); // Récupère le message à envoyer
+        
+        sendStrMsg(sockfd, send_buffer); // Envoie ce message au serveur
+        
         if(strcmp(send_buffer, "-1\n") == 0){
             printf("%s\n", "You terminated the communication");
             pthread_exit(NULL);
         }
         
     }
-    sleep(1);
 }
